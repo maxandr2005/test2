@@ -57,9 +57,14 @@ async function current_weather_gis(url_in) {
 }
 
 async function current_weather_ya(url_in) {
-    const response = await axios.get(url_in);
+    const response = await axios.get(url_in, {
+        headers: {'Accept-Language': 'ru-ru,ru;q=0.5'}
+    });
+
+    await console.log(response.status)
     const document = cheerio.load(response.data);
-    const current_weather = document(".fact__temp").text()
+    const current_weather = document(".fact__temp").text()+' \n '+document(".fact__feelings .day-anchor").text()
+
     return new Promise(resolve => {
         resolve(current_weather);
     });
@@ -85,16 +90,18 @@ bot.on('message', async msg => {
     const text = msg.text;
     const chatId = msg.chat.id;
     if (text === '/start'){
-        await bot.sendMessage(chatId, 'Выбери РОССИЙСКИЙ город из списка или введи его вручную. Я расскажу какая там сейчас температура', cityOptions)
+        await bot.sendMessage(chatId, 'Введи город вручную или выбери из списка. Я расскажу какая там сейчас температура', cityOptions)
     }
     else{
-        const result = data.find( ({ name }) => name.toLowerCase() === text.toLowerCase() );
+
+        let result = data.find( ({ name }) => name.toLowerCase() == text.toLowerCase() );
         if(result){
             // console.log(result.coords)
-            let lat = result['coords'].lat;
-            let lon = result['coords'].lon;
+            let lat = result['coordinates'].lat;
+            let lon = result['coordinates'].lon;
+            let padej = result['cases'].pr;
             let url_ya = 'https://yandex.lv/weather/?lat='+lat+'&lon='+lon;
-            current_weather_ya(url_ya).then((msg) => {bot.sendMessage(chatId, 'Cейчас: '+msg)})
+            current_weather_ya(url_ya).then((msg) => {bot.sendMessage(chatId, 'Cейчас в '+padej+': '+msg)})
         }
         else {
             bot.sendMessage(chatId, 'Такой город не найден')
@@ -127,8 +134,6 @@ bot.on('message', async msg => {
 
 
 bot.on('callback_query', async msg=>{
-
-
     const data = msg.data;
     let now = new Date();
     console.log(now.getFullYear()+' '+now.getMonth()+' '+now.getDay()+' 00:00+0300')
