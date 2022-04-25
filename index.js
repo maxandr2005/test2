@@ -1,23 +1,24 @@
 const cheerio = require("cheerio");
 const axios = require("axios");
 const TelegramApi = require('node-telegram-bot-api')
-const token = '5317921633:AAEEVIJzcZcIfNGgAd4hTiPBu193XYWUDjE'
-const bot = new TelegramApi(token, {polling: true})
+const fs = require('fs');
+const fetch = require('node-fetch');
 
-var url = "https://cleaner.dadata.ru/api/v1/clean/address";
-var token1 = "94f0af9e9dcfa15c5916f7290cb3d60411fda746";
-var secret = "eeeac76bc69ff972b0be5e59e48d77bfec16b207";
-var query = "москва сухонская 11";
-var options = {
-    method: "POST",
-    mode: "cors",
-    headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Token " + token1,
-        "X-Secret": secret
-    },
-    body: JSON.stringify([query])
-}
+const Teletoken = '5317921633:AAEEVIJzcZcIfNGgAd4hTiPBu193XYWUDjE'
+const bot = new TelegramApi(Teletoken, {polling: true})
+let lat = 0;
+let lon = 0;
+
+
+// var url = "https://cleaner.dadata.ru/api/v1/clean/address";
+// var token = "94f0af9e9dcfa15c5916f7290cb3d60411fda746";
+// var secret = "eeeac76bc69ff972b0be5e59e48d77bfec16b207";
+
+let rawdata = fs.readFileSync('russian-cities.json');
+const data = JSON.parse(rawdata);
+
+
+
 
 
 const cityOptions = {
@@ -32,6 +33,13 @@ const cityOptions = {
     })
 }
 
+const daysOptions = {
+    reply_markup: JSON.stringify({
+        inline_keyboard: [
+            [{text: 'На 3 дня', callback_data: '3'}]
+        ]
+    })
+}
 
 bot.setMyCommands([
     {command: '/start', description: 'Привет'},
@@ -48,6 +56,28 @@ async function current_weather_gis(url_in) {
 
 }
 
+async function current_weather_ya(url_in) {
+    const response = await axios.get(url_in);
+    const document = cheerio.load(response.data);
+    const current_weather = document(".fact__temp").text()
+    return new Promise(resolve => {
+        resolve(current_weather);
+    });
+
+}
+
+async function current_weather_ya_days(url_in) {
+    const response = await axios.get(url_in);
+    const document = cheerio.load(response.data);
+    const current_weather = document(".fact__temp").text()
+    return new Promise(resolve => {
+        resolve(current_weather);
+    });
+
+}
+
+
+
 
 
 
@@ -55,16 +85,56 @@ bot.on('message', async msg => {
     const text = msg.text;
     const chatId = msg.chat.id;
     if (text === '/start'){
-        await bot.sendMessage(chatId, 'Назови город. Я расскажу какая там сейчас температура', cityOptions)
+        await bot.sendMessage(chatId, 'Выбери РОССИЙСКИЙ город из списка или введи его вручную. Я расскажу какая там сейчас температура', cityOptions)
     }
+    else{
+        const result = data.find( ({ name }) => name.toLowerCase() === text.toLowerCase() );
+        if(result){
+            // console.log(result.coords)
+            let lat = result['coords'].lat;
+            let lon = result['coords'].lon;
+            let url_ya = 'https://yandex.lv/weather/?lat='+lat+'&lon='+lon;
+            current_weather_ya(url_ya).then((msg) => {bot.sendMessage(chatId, 'Cейчас: '+msg)})
+        }
+        else {
+            bot.sendMessage(chatId, 'Такой город не найден')
+        }
+
+    }
+    // else {
+    //     // var query = text;
+    //     // var options = {
+    //     //     method: "POST",
+    //     //     mode: "cors",
+    //     //     headers: {
+    //     //         "Content-Type": "application/json",
+    //     //         "Authorization": "Token " + token,
+    //     //         "X-Secret": secret
+    //     //     },
+    //     //     body: JSON.stringify([query])
+    //     // }
+    //     // fetch(url, options)
+    //     //     .then(res => res.json())
+    //     //     .then(json => {
+    //     //         var lat = json[0].geo_lat;
+    //     //         var lon = json[0].geo_lon;
+    //     //         var data = 'https://yandex.lv/weather/?lat='+lat+'&lon='+lon;
+    //     //         current_weather_ya(data).then((msg) => {bot.sendMessage(chatId, 'Cейчас: '+msg)});
+    //     //         var lat = 0; var lon = 0;
+    //     //     })
+    // }
 })
 
-bot.on('callback_query', async msg=>{
-    console.log(msg)
-    const data = msg.data;
-    const chatId = msg.message.chat.id;
 
-        return current_weather_gis(data).then((msg) => {bot.sendMessage(chatId, 'Cейчас: '+msg, cityOptions)})
+bot.on('callback_query', async msg=>{
+
+
+    const data = msg.data;
+    let now = new Date();
+    console.log(now.getFullYear()+' '+now.getMonth()+' '+now.getDay()+' 00:00+0300')
+    const chatId = msg.message.chat.id;
+    //return bot.sendMessage(chatId, now.getFullYear()+' '+now.getMonth()+' '+now.getDay()+' 00:00+0300')
+         return current_weather_gis(data).then((msg) => {bot.sendMessage(chatId, 'Cейчас: '+msg, cityOptions)})
 
 
 

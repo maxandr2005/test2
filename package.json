@@ -12,6 +12,9 @@
   "dependencies": {
     "axios": "^0.26.1",
     "cheerio": "^1.0.0-rc.10",
+    "fetch": "^1.1.0",
+    "fs": "^0.0.1-security",
+    "moment": "^2.29.3",
     "node-telegram-bot-api": "^0.56.0",
     "nodemon": "^2.0.15",
     "telegraf": "^4.7.0"
