@@ -36,7 +36,15 @@ const cityOptions = {
 const daysOptions = {
     reply_markup: JSON.stringify({
         inline_keyboard: [
-            [{text: 'На 3 дня', callback_data: '3'}]
+            [{text: 'На 3 дня', callback_data: lat}]
+        ]
+    })
+}
+
+const subscribeOptions = {
+    reply_markup: JSON.stringify({
+        inline_keyboard: [
+            [{text: 'Подписаться', callback_data: 'sub'}]
         ]
     })
 }
@@ -60,28 +68,37 @@ async function current_weather_ya(url_in) {
     const response = await axios.get(url_in, {
         headers: {'Accept-Language': 'ru-ru,ru;q=0.5'}
     });
-
-    await console.log(response.status)
     const document = cheerio.load(response.data);
-    const current_weather = document(".fact__temp").text()+' \n '+document(".fact__feelings .day-anchor").text()
-
+    const current_weather = new Array();
+    current_weather[0] = document(".fact__temp").text()
+    current_weather[1] = document(".fact__feelings .link__condition").text();
+    let i = 2;
+    while(document(".forecast-briefly__day:nth-child("+i+") .forecast-briefly__temp_day .temp__value").text() !== ''){
+        current_weather.push(document(".forecast-briefly__day:nth-child("+i+") .forecast-briefly__temp_day .temp__value").text());
+        current_weather.push(document(".forecast-briefly__day:nth-child("+i+") .forecast-briefly__temp_night .temp__value").text());
+        current_weather.push(document(".forecast-briefly__day:nth-child("+i+") .forecast-briefly__condition").text());
+        i++;
+    }
+    console.log(current_weather);
     return new Promise(resolve => {
         resolve(current_weather);
     });
 
 }
 
-async function current_weather_ya_days(url_in) {
-    const response = await axios.get(url_in);
+async function current_weather_ya_days() {
+    const response = await axios.get('https://yandex.lv/weather/?lat=51.6&lon=39.2');
     const document = cheerio.load(response.data);
-    const current_weather = document(".fact__temp").text()
+    const current_weather = document("body").text()
     return new Promise(resolve => {
         resolve(current_weather);
     });
 
 }
 
-
+function days_weather(arr){
+    return arr
+}
 
 
 
@@ -94,14 +111,50 @@ bot.on('message', async msg => {
     }
     else{
 
-        let result = data.find( ({ name }) => name.toLowerCase() == text.toLowerCase() );
+        let result = data.find( ({ name }) => name == text );
         if(result){
-            // console.log(result.coords)
             let lat = result['coordinates'].lat;
             let lon = result['coordinates'].lon;
             let padej = result['cases'].pr;
             let url_ya = 'https://yandex.lv/weather/?lat='+lat+'&lon='+lon;
-            current_weather_ya(url_ya).then((msg) => {bot.sendMessage(chatId, 'Cейчас в '+padej+': '+msg)})
+            current_weather_ya(url_ya).then((mesg) => {
+                bot.sendMessage(chatId, 'Cейчас в '+padej+': '+mesg[0]+' '+mesg[1]+'', daysOptions)
+                let now = new Date();
+                let nowmonth = 0;
+                let nowday =0;
+                if (now.getMonth() < 9) {
+                    nowmonth = '0' + (parseInt(now.getMonth(),10)+1);
+                }
+                else {
+                    nowmonth = parseInt(now.getMonth(),10)+1;
+                }
+                if (now.getDate() < 10) {
+                    nowday = '0' + now.getDate();
+                }
+                else {
+                    nowday = now.getDate()
+                }
+                let weather = {
+                    name: text,
+                    id_user: chatId,
+                    weather_today_day: mesg[2],
+                    weather_today_night: mesg[3],
+                    weather_today_type: mesg[4],
+                    weather_tomorrow_day: mesg[5],
+                    weather_tomorrow_night: mesg[6],
+                    weather_tomorrow_type: mesg[7],
+                    weather_2_day: mesg[8],
+                    weather_2_night: mesg[9],
+                    weather_2_type: mesg[10],
+                    weather_3_day: mesg[11],
+                    weather_3_night: mesg[12],
+                    weather_3_type: mesg[13],
+                    time: now.getFullYear()+' '+nowmonth +' '+nowday
+                }
+                let weatherdata = JSON.stringify(weather)
+                fs.writeFileSync('data/weather.json', weatherdata);
+
+            })
         }
         else {
             bot.sendMessage(chatId, 'Такой город не найден')
@@ -133,14 +186,30 @@ bot.on('message', async msg => {
 })
 
 
+
 bot.on('callback_query', async msg=>{
-    const data = msg.data;
-    let now = new Date();
-    console.log(now.getFullYear()+' '+now.getMonth()+' '+now.getDay()+' 00:00+0300')
-    const chatId = msg.message.chat.id;
-    //return bot.sendMessage(chatId, now.getFullYear()+' '+now.getMonth()+' '+now.getDay()+' 00:00+0300')
-         return current_weather_gis(data).then((msg) => {bot.sendMessage(chatId, 'Cейчас: '+msg, cityOptions)})
-
-
-
+    if(msg.data == 'sub'){
+        const cron = require('./cronclients')
+    } else {
+        const data = msg.data;
+        let now = new Date();
+        let nowmonth = 0;
+        let nowday = 0;
+        if (now.getMonth() < 9) {
+            nowmonth = '0' + (parseInt(now.getMonth(), 10) + 1);
+        } else {
+            nowmonth = parseInt(now.getMonth(), 10) + 1;
+        }
+        if (now.getDate() + 3 < 10) {
+            nowday = '0' + (now.getDate() + 3);
+        } else {
+            nowday = now.getDate() + 3
+        }
+        const chatId = msg.message.chat.id;
+        const data1 = fs.readFileSync('data/weather.json',
+            {encoding: 'utf8', flag: 'r'});
+        obj = JSON.parse(data1);
+        console.log(chatId)
+        return bot.sendMessage(chatId, 'Сегодня \nднем: ' + obj.weather_today_day + ' \nночью: ' + obj.weather_today_night + ' \n' + obj.weather_today_type + ' \n \nЗавтра \nднем: ' + obj.weather_tomorrow_day + ' \nночью: ' + obj.weather_tomorrow_night + ' \n' + obj.weather_today_type + ' \n \nПослезавтра \nднем: ' + obj.weather_2_day + ' \nночью: ' + obj.weather_2_night + ' \n' + obj.weather_2_type + ' \n \n' + nowday + '.' + nowmonth + '  \nднем: ' + obj.weather_3_day + '  \nночью: ' + obj.weather_3_night + ' \n' + obj.weather_3_type, subscribeOptions)
+    }
 })

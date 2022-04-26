@@ -1,7 +1,6 @@
 {
   "name": "test2",
   "version": "1.0.0",
-  "description": "",
   "main": "index.js",
   "scripts": {
     "start": "nodemon index.js"
@@ -18,5 +17,15 @@
     "node-telegram-bot-api": "^0.56.0",
     "nodemon": "^2.0.15",
     "telegraf": "^4.7.0"
-  }
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maxandr2005/test2.git"
+  },
+  "bugs": {
+    "url": "https://github.com/maxandr2005/test2/issues"
+  },
+  "homepage": "https://github.com/maxandr2005/test2#readme",
+  "description": ""
 }
