@@ -8,6 +8,9 @@ const Teletoken = '5317921633:AAEEVIJzcZcIfNGgAd4hTiPBu193XYWUDjE'
 const bot = new TelegramApi(Teletoken, {polling: true})
 let lat = 0;
 let lon = 0;
+let now = new Date();
+let nowmonth = 0;
+let nowday = 0;
 
 
 // var url = "https://cleaner.dadata.ru/api/v1/clean/address";
@@ -79,7 +82,6 @@ async function current_weather_ya(url_in) {
         current_weather.push(document(".forecast-briefly__day:nth-child("+i+") .forecast-briefly__condition").text());
         i++;
     }
-    console.log(current_weather);
     return new Promise(resolve => {
         resolve(current_weather);
     });
@@ -96,8 +98,9 @@ async function current_weather_ya_days() {
 
 }
 
-function days_weather(arr){
-    return arr
+function now_date(day){
+    now_new = new Date(now.getFullYear(), now.getMonth(), now.getDate()+day);
+    return now_new
 }
 
 
@@ -135,54 +138,42 @@ bot.on('message', async msg => {
                     nowday = now.getDate()
                 }
                 let weather = {
-                    name: text,
                     id_user: chatId,
-                    weather_today_day: mesg[2],
-                    weather_today_night: mesg[3],
-                    weather_today_type: mesg[4],
-                    weather_tomorrow_day: mesg[5],
-                    weather_tomorrow_night: mesg[6],
-                    weather_tomorrow_type: mesg[7],
-                    weather_2_day: mesg[8],
-                    weather_2_night: mesg[9],
-                    weather_2_type: mesg[10],
-                    weather_3_day: mesg[11],
-                    weather_3_night: mesg[12],
-                    weather_3_type: mesg[13],
-                    time: now.getFullYear()+' '+nowmonth +' '+nowday
+                    data: {
+                        name: text,
+
+                        weather_today_day: mesg[2],
+                        weather_today_night: mesg[3],
+                        weather_today_type: mesg[4],
+                        weather_tomorrow_day: mesg[5],
+                        weather_tomorrow_night: mesg[6],
+                        weather_tomorrow_type: mesg[7],
+                        weather_2_day: mesg[8],
+                        weather_2_night: mesg[9],
+                        weather_2_type: mesg[10],
+                        weather_3_day: mesg[11],
+                        weather_3_night: mesg[12],
+                        weather_3_type: mesg[13],
+                        time: now.getFullYear() + ' ' + nowmonth + ' ' + nowday
+                    }
                 }
                 let weatherdata = JSON.stringify(weather)
-                fs.writeFileSync('data/weather.json', weatherdata);
+                fs.readFile('data/weather.json', 'utf8', function readFileCallback(err, data){
+                    if (err){
+                        console.log(err);
+                    } else {
+                        obj = JSON.parse(data);
+                        obj.push(weather);
+                        json = JSON.stringify(obj);
+                        fs.writeFileSync('data/weather.json', json, 'utf8'); // write it back
+                    }});
 
             })
         }
         else {
             bot.sendMessage(chatId, 'Такой город не найден')
         }
-
     }
-    // else {
-    //     // var query = text;
-    //     // var options = {
-    //     //     method: "POST",
-    //     //     mode: "cors",
-    //     //     headers: {
-    //     //         "Content-Type": "application/json",
-    //     //         "Authorization": "Token " + token,
-    //     //         "X-Secret": secret
-    //     //     },
-    //     //     body: JSON.stringify([query])
-    //     // }
-    //     // fetch(url, options)
-    //     //     .then(res => res.json())
-    //     //     .then(json => {
-    //     //         var lat = json[0].geo_lat;
-    //     //         var lon = json[0].geo_lon;
-    //     //         var data = 'https://yandex.lv/weather/?lat='+lat+'&lon='+lon;
-    //     //         current_weather_ya(data).then((msg) => {bot.sendMessage(chatId, 'Cейчас: '+msg)});
-    //     //         var lat = 0; var lon = 0;
-    //     //     })
-    // }
 })
 
 
@@ -192,24 +183,27 @@ bot.on('callback_query', async msg=>{
         const cron = require('./cronclients')
     } else {
         const data = msg.data;
-        let now = new Date();
-        let nowmonth = 0;
-        let nowday = 0;
-        if (now.getMonth() < 9) {
-            nowmonth = '0' + (parseInt(now.getMonth(), 10) + 1);
+
+        if (now_date(3).getMonth() < 9) {
+            nowmonth = '0' + (parseInt(now_date(3).getMonth(), 10) + 1);
         } else {
-            nowmonth = parseInt(now.getMonth(), 10) + 1;
+            nowmonth = parseInt(now_date(3).getMonth(), 10) + 1;
         }
-        if (now.getDate() + 3 < 10) {
-            nowday = '0' + (now.getDate() + 3);
+
+        if (now_date(3).getDate() < 10) {
+            nowday = '0' + (now_date(3).getDate());
         } else {
-            nowday = now.getDate() + 3
+            nowday = now_date(3).getDate()
         }
         const chatId = msg.message.chat.id;
         const data1 = fs.readFileSync('data/weather.json',
             {encoding: 'utf8', flag: 'r'});
         obj = JSON.parse(data1);
-        console.log(chatId)
-        return bot.sendMessage(chatId, 'Сегодня \nднем: ' + obj.weather_today_day + ' \nночью: ' + obj.weather_today_night + ' \n' + obj.weather_today_type + ' \n \nЗавтра \nднем: ' + obj.weather_tomorrow_day + ' \nночью: ' + obj.weather_tomorrow_night + ' \n' + obj.weather_today_type + ' \n \nПослезавтра \nднем: ' + obj.weather_2_day + ' \nночью: ' + obj.weather_2_night + ' \n' + obj.weather_2_type + ' \n \n' + nowday + '.' + nowmonth + '  \nднем: ' + obj.weather_3_day + '  \nночью: ' + obj.weather_3_night + ' \n' + obj.weather_3_type, subscribeOptions)
+        // console.log(obj)
+        return bot.sendMessage(chatId, 'Сегодня \n' +
+            'днем: ' + obj[obj.length - 1].data.weather_today_day + ' \n'+'ночью: ' + obj[obj.length - 1].data.weather_today_night + ' \n' + obj[obj.length - 1].data.weather_today_type + ' \n \n' +
+            'Завтра \nднем: ' + obj[obj.length - 1].data.weather_tomorrow_day + ' \nночью: ' + obj[obj.length - 1].data.weather_tomorrow_night + ' \n' + obj[obj.length - 1].data.weather_today_type + ' \n \n'+
+            'Послезавтра \nднем: ' + obj[obj.length - 1].data.weather_2_day + ' \nночью: ' + obj[obj.length - 1].data.weather_2_night + ' \n' + obj[obj.length - 1].data.weather_2_type + ' \n \n' +
+            nowday + '.' + nowmonth + '  \nднем: ' + obj[obj.length - 1].data.weather_3_day + '  \n' +'ночью: ' + obj[obj.length - 1].data.weather_3_night + ' \n' + obj[obj.length - 1].data.weather_3_type, subscribeOptions)
     }
 })
