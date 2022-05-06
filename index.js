@@ -3,6 +3,7 @@ const axios = require("axios");
 const TelegramApi = require('node-telegram-bot-api')
 const fs = require('fs');
 const fetch = require('node-fetch');
+const sequilize = require('sequelizenpm io ')
 
 const Teletoken = '5317921633:AAEEVIJzcZcIfNGgAd4hTiPBu193XYWUDjE'
 const bot = new TelegramApi(Teletoken, {polling: true})
@@ -110,7 +111,7 @@ bot.on('message', async msg => {
     const text = msg.text;
     const chatId = msg.chat.id;
     if (text === '/start'){
-        await bot.sendMessage(chatId, 'Введи город вручную или выбери из списка. Я расскажу какая там сейчас температура', cityOptions)
+        await bot.sendMessage(chatId, 'Введи город вручную. Я расскажу какая там сейчас температура')
     }
     else{
 
