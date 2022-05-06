@@ -3,7 +3,6 @@ const axios = require("axios");
 const TelegramApi = require('node-telegram-bot-api')
 const fs = require('fs');
 const fetch = require('node-fetch');
-const sequilize = require('sequelizenpm io ')
 
 const Teletoken = '5317921633:AAEEVIJzcZcIfNGgAd4hTiPBu193XYWUDjE'
 const bot = new TelegramApi(Teletoken, {polling: true})
